@@ -1,0 +1,204 @@
+<html><head></head><body><div class="apidocDiv">
+<style>
+/*csslint
+*/
+.apidocDiv {
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.apidocDiv a[href] {
+    color: #33f;
+    font-weight: bold;
+    text-decoration: none;
+}
+.apidocDiv a[href]:hover {
+    text-decoration: underline;
+}
+.apidocCodeCommentSpan {
+    background: #bbf;
+    color: #000;
+    display: block;
+}
+.apidocCodeKeywordSpan {
+    color: #d00;
+    font-weight: bold;
+}
+.apidocCodePre {
+    background: #eef;
+    border: 1px solid;
+    color: #777;
+    padding: 5px;
+    white-space: pre-wrap;
+}
+.apidocFooterDiv {
+    margin-top: 20px;
+    text-align: center;
+}
+.apidocModuleLi {
+    margin-top: 10px;
+}
+.apidocSectionDiv {
+    border-top: 1px solid;
+    margin-top: 20px;
+}
+.apidocSignatureSpan {
+    color: #777;
+    font-weight: bold;
+}
+</style>
+<h1>api documentation for
+    <a href="https://github.com/vxtindia/excel-parser">excel-parser (v0.2.2)</a>
+</h1>
+<h4>node.js excel parser. Supports xlsx, xls</h4>
+<div class="apidocSectionDiv"><a href="#apidoc.tableOfContents" id="apidoc.tableOfContents"><h1>table of contents</h1></a><ol>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.excel-parser">module excel-parser</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.excel-parser.parse">
+            function <span class="apidocSignatureSpan">excel-parser.</span>parse
+            <span class="apidocSignatureSpan">(options, cb)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.excel-parser.worksheets">
+            function <span class="apidocSignatureSpan">excel-parser.</span>worksheets
+            <span class="apidocSignatureSpan">(options, cb)</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+</ol></div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.excel-parser" id="apidoc.module.excel-parser">module excel-parser</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.excel-parser.parse" id="apidoc.element.excel-parser.parse">
+        function <span class="apidocSignatureSpan">excel-parser.</span>parse
+        <span class="apidocSignatureSpan">(options, cb)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">parse = function (options, cb) {
+  var args = [], _this = this;
+  if(!cb) throw new Error("worksheets will required two arguments. worksheets(options, callback)");
+  else if(!options || typeof(options) !== 'object') return cb("Invalid arguments.");
+  else if(!options.inFile) return cb("File is missing in arguments");
+  fs.exists(options.inFile, function(exists) {
+    if(!exists) return cb("File not found");
+    args = ['-x', '"'+path.relative(__dirname, options.inFile)+'"'];
+    if(!options.worksheet) {
+      var records = [];
+      _this.worksheets(options, function(err, worksheets) {
+        if(err) return cb(err);
+        async.series(_.map(worksheets, function(worksheet) {
+          return function(rcb) {
+            args.push('-n', worksheet.id);
+            utils.pickRecords(args, options, function(err, parsed) {
+              if(err) return cb(err);
+              records.push(parsed);
+              rcb(null);
+            });
+          }
+        }), function(err, parsed) {
+          if(err) return cb(err);
+          cb(null, parsed);
+        });
+      });
+    } else {
+      if(typeof(options.worksheet) === 'number') {
+        args.push('-n', options.worksheet);
+      } else if(typeof(options.worksheet) === 'string') {
+        args.push('-w', '"'+ options.worksheet.trim() + '"');
+      } else {
+        return callback(new Error('"worksheet" should be string or intiger'));
+      }
+      utils.pickRecords(args, options, function(err, parsed) {
+        if(err) return cb(err);
+        cb(null, parsed);
+      });
+    }
+  });
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+** 'loose' is for the case insensetive and match relatively.
+
+__Example__
+
+```javascript
+var excelParser = require('excel-parser');
+
+excelParser.<span class="apidocCodeKeywordSpan">parse</span>({
+inFile: 'my_file.in',
+worksheet: 1,
+skipEmpty: true,
+searchFor: {
+  term: ['my serach term'],
+  type: 'loose'
+}
+...</pre></li>
+    </ul>
+
+
+
+    <h2>
+        <a href="#apidoc.element.excel-parser.worksheets" id="apidoc.element.excel-parser.worksheets">
+        function <span class="apidocSignatureSpan">excel-parser.</span>worksheets
+        <span class="apidocSignatureSpan">(options, cb)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">worksheets = function (options, cb) {
+  var worksheets, cb = cb &amp;&amp; typeof(cb) === "function" ? cb : null, args = [];
+  if(!cb) throw new Error("worksheets will required two arguments. worksheets(options, callback)")
+  else if(!options || typeof(options) !== 'object') return cb("Invalid arguments.");
+  else if(!options.inFile) return cb("File is missing in arguments");
+
+  fs.exists(options.inFile, function(exists) {
+    if(!exists) return cb("File not found");
+    args = ['-x', '"'+path.relative(__dirname, options.inFile)+'"', '-W'];
+    utils.execute(args, function(err, stdout) {
+      if(err) return cb(err);
+      worksheets = _.compact(stdout.split(/\n/));
+      if(worksheets) return cb(null, JSON.parse(worksheets));
+      else return cb(new Error("Not found any worksheet in given spreadsheet"));
+    });
+  });
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+
+* inFile - Filepath of the source speadsheet
+
+__Example__
+
+```js
+var excelParser = require('excel-parser');
+excelParser.<span class="apidocCodeKeywordSpan">worksheets</span>({
+  inFile: 'my_file.in'
+}, function(err, worksheets){
+  if(err) console.error(err);
+  consol.log(worksheets);
+});
+```
+__Sample output__
+...</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocFooterDiv">
+    [ this document was created with
+    <a href="https://github.com/kaizhu256/node-utility2" target="_blank">utility2</a>
+    ]
+</div>
+</div>
+</body></html>
